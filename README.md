@@ -1,7 +1,7 @@
 This library allows to copy an Encounter game from one domain to another, or just create a copy on the same domain.
 
 As of version 1.0.0, this script only works for Real game types.
-On Real games, it doesn't copy bonues.
+On Real games, it doesn't copy bonuses.
 
 The usage is simple:
 First, scrape a game from Encounter engine and store it to a local file:
