@@ -12,7 +12,7 @@ __all__ = [
 
 def save_game(
         source_game_id: int,
-        domain: str,
+        source_domain: str,
         creds: typing.Dict[str, str],
         path_to_store_game: str,
         chrome_driver_path: str,
@@ -20,7 +20,7 @@ def save_game(
 ) -> None:
     orig_game = Game.from_html(
         source_game_id,
-        domain,
+        source_domain,
         creds,
         chrome_driver_path=chrome_driver_path,
         levels_subset=levels_subset,
@@ -33,7 +33,7 @@ def save_game(
 
 def load_game(
         target_game_id: int,
-        domain: str,
+        target_domain: str,
         creds: typing.Dict[str, str],
         game_file_path: str,
         chrome_driver_path: str,
@@ -42,7 +42,7 @@ def load_game(
     with open(game_file_path, "rb") as f:
         orig_game: Game = pickle.load(f)
 
-    orig_game.domain = domain
+    orig_game.domain = target_domain
     orig_game.game_id = target_game_id
     if game_manipulation is not None:
         orig_game = game_manipulation(orig_game)
