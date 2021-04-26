@@ -121,10 +121,14 @@ class Level:
         name = GameName.from_html(driver, game_id, level_id)
         ap = Autopass.from_html(driver)
         block = AnswerBlock.from_html(driver)
+        time.sleep(2)
 
         tasks = cls.load_tasks(driver)
+        time.sleep(2)
         hints = cls.load_hints(driver, False)
+        time.sleep(2)
         penalized_hints = cls.load_hints(driver, True)
+        time.sleep(2)
         answers = cls.load_answers(driver, domain)
 
         # noinspection PyTypeChecker
@@ -172,9 +176,12 @@ class Level:
         self.name.to_html(driver, self.game_id, self.level_id)
         self.autopass.to_html(driver)
         self.answer_block.to_html(driver)
+        time.sleep(2)
         for task in self.tasks:
             task.to_html(driver)
+            time.sleep(2)
         for penalized in (False, True):
             self.store_hints(driver, penalized)
+            time.sleep(2)
         self.store_answers(driver)
         return None
