@@ -118,7 +118,7 @@ class PenalizedHint(Hint):
                 "NewPromptTimeoutDays", "NewPromptTimeoutHours", "NewPromptTimeoutMinutes", "NewPromptTimeoutSeconds",
                 "PenaltyPromptHours", "PenaltyPromptMinutes", "PenaltyPromptSeconds",
             ]
-            for name, value in zip(params, self.hint_time):
+            for name, value in zip(params, self.hint_time + self.penalty_time):
                 driver.execute_script(f"""$('[name="{name}"]').attr("value", "{value}")""")
 
             txt = self.hint_text.replace("\"", "\\\"").replace("`", "\\`")
