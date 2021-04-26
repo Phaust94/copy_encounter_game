@@ -16,15 +16,15 @@ CREDS = {
     "password": "ENCOUNTER_PASSWORD",
 }
 SOURCE_GAME_ID = <SOURCE_GAME_ID>
-DOMAIN = "demo.en.cx"
+SOURCE_DOMAIN = "demo.en.cx"
 
 LEVELS_SUBSET = None
 # Might be either None, or a set of int level ids, starting from 1
 
 PATH_STORE_GAME = r"D:\data\quest\{domain}_{gid}.pcl"
-fn = PATH_STORE_GAME.format(domain=DOMAIN, gid=SOURCE_GAME_ID)
+fn = PATH_STORE_GAME.format(domain=SOURCE_DOMAIN, gid=SOURCE_GAME_ID)
 save_game(
-    SOURCE_GAME_ID, DOMAIN, CREDS,
+    SOURCE_GAME_ID, SOURCE_DOMAIN, CREDS,
     fn,
     CHROME_DRIVER_PATH, 
     levels_subset=LEVELS_SUBSET
@@ -44,7 +44,7 @@ CREDS = {
     "password": "ENCOUNTER_PASSWORD",
 }
 TARGET_GAME_ID = <TARGET_GAME_ID>
-DOMAIN = "demo.en.cx"
+TARGET_DOMAIN = "kharkiv.en.cx"
 
 
 def game_manipulation(game: Game) -> Game:
@@ -53,9 +53,11 @@ def game_manipulation(game: Game) -> Game:
 
 
 PATH_STORE_GAME = r"D:\data\quest\{domain}_{gid}.pcl"
-fn = PATH_STORE_GAME.format(domain=DOMAIN, gid=TARGET_GAME_ID)
+SOURCE_GAME_ID = <SOURCE_GAME_ID>
+SOURCE_DOMAIN = "demo.en.cx"
+fn = PATH_STORE_GAME.format(domain=SOURCE_DOMAIN, gid=SOURCE_GAME_ID)
 load_game(
-    TARGET_GAME_ID, DOMAIN, CREDS,
+    TARGET_GAME_ID, TARGET_DOMAIN, CREDS,
     fn, CHROME_DRIVER_PATH,
     game_manipulation=game_manipulation
 )
