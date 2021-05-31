@@ -11,7 +11,7 @@ import itertools
 
 from selenium import webdriver
 
-from copy_encounter_game.game.meta_info import GameName, Autopass, AnswerBlock
+from copy_encounter_game.game.meta_info import GameName, Autopass, AnswerBlock, SectorsToCover
 from copy_encounter_game.game.task import Task
 from copy_encounter_game.game.hint import Hint, PenalizedHint
 from copy_encounter_game.game.answer import Answer
@@ -29,6 +29,7 @@ class Level:
     name: GameName = GameName()
     autopass: Autopass = Autopass()
     answer_block: AnswerBlock = AnswerBlock()
+    sectors_to_cover: SectorsToCover = SectorsToCover()
     tasks: typing.List[Task] = field(default_factory=list)
     hints: typing.List[Hint] = field(default_factory=list)
     penalized_hints: typing.List[PenalizedHint] = field(default_factory=list)
@@ -84,7 +85,7 @@ class Level:
     def load_answers(cls, driver: webdriver.Chrome, domain: str) -> typing.List[Answer]:
         # noinspection PyBroadException
         driver.find_element_by_id(Answer.SHOW_ANSWERS_ID).click()
-        time.sleep(0.3)
+        time.sleep(1)
         # noinspection PyBroadException
         try:
             edit_urls = driver.execute_script("""
@@ -97,7 +98,8 @@ class Level:
             """)
             sector_names = driver.execute_script("""return $('#hdnSectorNames_0').val()""")
             sector_names = eval(f"{{{sector_names}}}").values()
-        except Exception:
+        except Exception as e:
+            print(e)
             answers = []
         else:
             if not sector_names:
@@ -121,6 +123,7 @@ class Level:
         name = GameName.from_html(driver, game_id, level_id)
         ap = Autopass.from_html(driver)
         block = AnswerBlock.from_html(driver)
+        sectors = SectorsToCover.from_html(driver)
         time.sleep(2)
 
         tasks = cls.load_tasks(driver)
@@ -135,6 +138,7 @@ class Level:
         inst = cls(
             domain, game_id, level_id,
             name, ap, block,
+            sectors,
             tasks, hints,
             penalized_hints,
             answers,
@@ -160,9 +164,13 @@ class Level:
             hint.to_html(driver, hint_url)
         return None
 
+    @property
+    def has_sectors(self) -> bool:
+        return self.answers and not(len(self.answers) == 1 and self.answers[0].name is None)
+
     def store_answers(self, driver: webdriver.Chrome) -> None:
         driver.find_element_by_id(Answer.SHOW_ANSWERS_ID).click()
-        if len(self.answers) == 1 and self.answers[0].name is None:
+        if not self.has_sectors:
             driver.execute_script("""$("a[title='Add answers']").click()""")
             self.answers[0].to_html(driver, has_sectors=False)
         else:
@@ -184,4 +192,7 @@ class Level:
             self.store_hints(driver, penalized)
             time.sleep(2)
         self.store_answers(driver)
+        if self.has_sectors:
+            time.sleep(2)
+            self.sectors_to_cover.to_html(driver)
         return None

@@ -16,6 +16,7 @@ __all__ = [
     "GameName",
     "Autopass",
     "AnswerBlock",
+    "SectorsToCover",
 ]
 
 
@@ -175,4 +176,45 @@ class AnswerBlock:
             driver.execute_script("""$('#rbApplyForTeam').click()""")
 
         driver.execute_script(f"""$('#divAnswerBlockingSettings').find('input[title="Save"]').click()""")
+        return None
+
+
+@dataclass
+class SectorsToCover:
+    n_sectors: typing.Optional[int] = None
+
+    STATUS_ID = "lnkSectorsSettings"
+    COMPLETE_CUSTOM_ID = "rbCompleteCustom"
+    N_COMPLETE_ID = "txtRequiredSectorsCount"
+
+    @classmethod
+    def from_html(
+            cls,
+            driver: webdriver.Chrome,
+    ) -> SectorsToCover:
+        # noinspection PyBroadException
+        try:
+            elem = driver.find_element_by_id(cls.STATUS_ID)
+        except Exception:
+            inst = cls()
+            return inst
+
+        elem.click()
+        is_custom_btn = driver.find_element_by_id(cls.COMPLETE_CUSTOM_ID)
+        is_custom = bool(is_custom_btn.get_attribute("checked"))
+        if not is_custom:
+            n = None
+        else:
+            n = int(driver.find_element_by_id(cls.N_COMPLETE_ID).get_attribute("value"))
+        inst = cls(n)
+        return inst
+
+    def to_html(self, driver: webdriver.Chrome) -> None:
+        elem = driver.find_element_by_id(self.STATUS_ID)
+        elem.click()
+        if self.n_sectors is not None:
+            driver.execute_script(f"""$('#{self.COMPLETE_CUSTOM_ID}').click()""")
+            driver.execute_script(f"""$('#{self.N_COMPLETE_ID}').attr("value", "{self.n_sectors}")""")
+
+        driver.execute_script(f"""$('#divSectorsSettins').find('input[title="Save"]').click()""")
         return None
