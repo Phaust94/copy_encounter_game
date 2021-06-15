@@ -23,7 +23,11 @@ class Answer:
     SHOW_ANSWERS_ID = "AnswersTable_ctl00_lnkShowAnswers"
 
     @classmethod
-    def from_html(cls, driver: webdriver.Chrome, url: str, name: str, domain: str) -> Answer:
+    def from_html(
+            cls,
+            driver: webdriver.Chrome,
+            url: typing.Optional[str], name: str, domain: str
+    ) -> Answer:
         url = f"http://{domain}{url}"
         driver.get(url)
         script = """

@@ -15,6 +15,7 @@ from copy_encounter_game.game.meta_info import GameName, Autopass, AnswerBlock, 
 from copy_encounter_game.game.task import Task
 from copy_encounter_game.game.hint import Hint, PenalizedHint
 from copy_encounter_game.game.answer import Answer
+from copy_encounter_game.game.bonus import Bonus
 
 __all__ = [
     "Level",
@@ -33,6 +34,7 @@ class Level:
     tasks: typing.List[Task] = field(default_factory=list)
     hints: typing.List[Hint] = field(default_factory=list)
     penalized_hints: typing.List[PenalizedHint] = field(default_factory=list)
+    bonuses: typing.List[Bonus] = field(default_factory=list)
     answers: typing.List[Answer] = field(default_factory=list)
 
     LEVEL_URL = "http://{domain}/Administration/Games/LevelEditor.aspx?gid={gid}&level={lid}"
@@ -42,9 +44,9 @@ class Level:
         return cls.LEVEL_URL.format(domain=domain, gid=game_id, lid=level_id)
 
     @classmethod
-    def find_hint_urls(cls, driver: webdriver.Chrome, is_penalized: bool = False) -> typing.List[str]:
+    def find_hint_urls(cls, driver: webdriver.Chrome, type_: int = 0) -> typing.List[str]:
         time.sleep(0.3)
-        num = 2 + is_penalized
+        num = 2 + type_
         hint_hrefs = driver.execute_script(f"""
                         var tbl = $('table.bg_dark')[{num}];
                         var hints = $(tbl).find('table').find('tr');
@@ -59,10 +61,14 @@ class Level:
         return hint_hrefs
 
     @classmethod
-    def load_hints(cls, driver: webdriver.Chrome, is_penalized: bool = False) -> typing.List[Hint]:
-        hint_hrefs = cls.find_hint_urls(driver, is_penalized)
+    def load_hints(cls, driver: webdriver.Chrome, type_: int = 0) -> typing.List[Hint]:
+        hint_hrefs = cls.find_hint_urls(driver, type_)
         hints = []
-        gtr = PenalizedHint if is_penalized else Hint
+        gtr = {
+            0: Hint,
+            1: PenalizedHint,
+            2: Bonus,
+        }[type_]
         for href in hint_hrefs:
             hint = gtr.from_html(driver, href)
             hints.append(hint)
@@ -97,7 +103,10 @@ class Level:
             return res
             """)
             sector_names = driver.execute_script("""return $('#hdnSectorNames_0').val()""")
-            sector_names = eval(f"{{{sector_names}}}").values()
+            if sector_names is None:
+                sector_names = []
+            else:
+                sector_names = eval(f"{{{sector_names}}}").values()
         except Exception as e:
             print(e)
             answers = []
@@ -128,10 +137,11 @@ class Level:
 
         tasks = cls.load_tasks(driver)
         time.sleep(2)
-        hints = cls.load_hints(driver, False)
-        time.sleep(2)
-        penalized_hints = cls.load_hints(driver, True)
-        time.sleep(2)
+        hint_types = []
+        for type_ in range(3):
+            hint_type = cls.load_hints(driver, type_)
+            hint_types.append(hint_type)
+            time.sleep(2)
         answers = cls.load_answers(driver, domain)
 
         # noinspection PyTypeChecker
@@ -139,26 +149,40 @@ class Level:
             domain, game_id, level_id,
             name, ap, block,
             sectors,
-            tasks, hints,
-            penalized_hints,
+            tasks, *hint_types,
             answers,
         )
 
         return inst
 
-    def store_hints(self, driver: webdriver.Chrome, penalized: bool = False) -> None:
-        hint_urls = self.find_hint_urls(driver, penalized)
-        hints = self.penalized_hints if penalized else self.hints
+    def hint_edit_url(self, type_: int = 0):
+        if type_ <= 1:
+            path = "./PromptEdit.aspx?gid={gid}&level={lid}"
+            if type_ == 1:
+                path += "&penalty=1"
+            args = [repr(path), repr(f'Prompt_{{gid}}_{{lid}}')]
+        else:
+            path = './BonusEdit.aspx?gid={gid}&level={lid}&action=add'
+            args = [repr(path)]
+
+        args_str = ",".join(args)
+        hint_url = f"GameEditor({args_str});"
+        hint_url = hint_url.format(
+            gid=self.game_id,
+            lid=self.level_id
+        )
+        return hint_url
+
+    def store_hints(self, driver: webdriver.Chrome, type_: int = 0) -> None:
+        hint_urls = self.find_hint_urls(driver, type_)
+        hints = {
+            0: self.hints,
+            1: self.penalized_hints,
+            2: self.bonuses,
+        }[type_]
         for hint, hint_url in itertools.zip_longest(hints, hint_urls):
             if hint_url is None:
-                path = "./PromptEdit.aspx?gid={gid}&level={lid}"
-                if penalized:
-                    path += "&penalty=1"
-                hint_url = f"GameEditor({path!r}, 'Prompt_{{gid}}_{{lid}}');"
-                hint_url = hint_url.format(
-                    gid=self.game_id,
-                    lid=self.level_id
-                )
+                hint_url = self.hint_edit_url(type_)
             elif hint is None:
                 continue
             hint.to_html(driver, hint_url)
@@ -170,7 +194,7 @@ class Level:
 
     def store_answers(self, driver: webdriver.Chrome) -> None:
         driver.find_element_by_id(Answer.SHOW_ANSWERS_ID).click()
-        if not self.has_sectors:
+        if not self.has_sectors and self.answers:
             driver.execute_script("""$("a[title='Add answers']").click()""")
             self.answers[0].to_html(driver, has_sectors=False)
         else:
@@ -188,8 +212,8 @@ class Level:
         for task in self.tasks:
             task.to_html(driver)
             time.sleep(2)
-        for penalized in (False, True):
-            self.store_hints(driver, penalized)
+        for type_ in range(3):
+            self.store_hints(driver, type_)
             time.sleep(2)
         self.store_answers(driver)
         if self.has_sectors:
