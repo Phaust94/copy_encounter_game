@@ -20,14 +20,35 @@ __all__ = [
 @dataclass
 class Bonus:
     name: str
-    bonus_task: str = None
+    bonus_task: str = ""
     answers: typing.List[str] = field(default_factory=list)
-    levels_available: typing.Dict[str, bool] = None
+    levels_available: typing.List[int] = None
     available_time: typing.Optional[typing.Tuple[str, str]] = None
     appearence_delay: typing.Optional[typing.Tuple[int, int, int]] = None
     availability_window: typing.Optional[typing.Tuple[int, int, int]] = None
     bonus_time: typing.Tuple[int, int, int] = (0, 0, 0)
     hint_text: str = ""
+
+    @staticmethod
+    def get_levels(
+            driver: webdriver.Chrome
+    ) -> typing.List[int, str, typing.Optional[str]]:
+        levels = driver.execute_script("""
+                        var levels = [];
+                        $('.enCheckBox[name^="level"]').each(
+                            function(i, e){
+                                levels.push(
+                                    [
+                                        i + 1,
+                                        $(e).attr('name'),
+                                        $(e).attr('checked')
+                                    ]
+                                )
+                            }
+                        );
+                        return levels
+                        """)
+        return levels
 
     @classmethod
     def from_html(
@@ -57,24 +78,12 @@ class Bonus:
                 for name in int_params
             ]
 
-            levels = driver.execute_script("""
-                var levels = [];
-                $('.enCheckBox[name^="level"]').each(
-                    function(i, e){
-                        levels.push(
-                            [
-                                $(e).attr('name'),
-                                $(e).attr('checked')
-                            ]
-                        )
-                    }
-                );
-                return levels
-                """)
-            levels_available = {
-                level_name: bool(res)
-                for level_name, res in levels
-            }
+            levels = cls.get_levels(driver)
+            levels_available = [
+                level_id
+                for level_id, _, res in levels
+                if res
+            ]
 
             checkboxes = [
                 "rbAllLevels",
@@ -174,15 +183,10 @@ class Bonus:
             txt = self.hint_text.replace("\"", "\\\"").replace("`", "\\`")
             driver.execute_script(f"""$('textarea[name="txtHelp"]').text(`{txt}`)""")
 
-            levels_available = self.levels_available or {}
-            for lvl_name, is_available in levels_available.items():
-                # noinspection PyBroadException
-                try:
-                    checked_element = driver.find_element_by_css_selector(f'.enCheckBox[name="{lvl_name}"]')
-                except Exception:
-                    continue
-                checked = bool(checked_element.get_attribute("checked"))
-                if checked != is_available:
+            levels_available = self.levels_available or []
+            levels_in_en = self.get_levels(driver)
+            for lvl_id, lvl_name, is_checked in levels_in_en:
+                if bool(is_checked) ^ (lvl_id in levels_available):
                     driver.execute_script(f"""$('.enCheckBox[name="{lvl_name}"]').click()""")
                     driver.execute_script(f"""$('.enCheckBox[name="{lvl_name}"]').trigger('onclick')""")
 
@@ -192,7 +196,7 @@ class Bonus:
                 return levels
             """)
             for ans, ans_name in zip(self.answers, answer_names):
-                driver.execute_script(f"""$('input[name="{ans_name}"]').text(`{ans}`)""")
+                driver.execute_script(f"""$('input[name="{ans_name}"]').val(`{ans}`)""")
 
             # noinspection PyBroadException
             try:
