@@ -186,6 +186,7 @@ class Level:
             elif hint is None:
                 continue
             hint.to_html(driver, hint_url)
+            time.sleep(0.5)
         return None
 
     @property
