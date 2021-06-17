@@ -48,7 +48,7 @@ def penalty_bonuses(
         if not isinstance(ans, list):
             ans = [ans]
 
-        if set(ans) == right_answers:
+        if all(el in right_answers for el in ans):
             txt = right_ans_txt
         else:
             txt = wrong_ans_txt
