@@ -18,7 +18,7 @@ __all__ = [
 @dataclass
 class Answer:
     options: typing.List[str]
-    name: str = None
+    name: typing.Optional[str] = None
 
     SHOW_ANSWERS_ID = "AnswersTable_ctl00_lnkShowAnswers"
 
@@ -26,7 +26,7 @@ class Answer:
     def from_html(
             cls,
             driver: webdriver.Chrome,
-            url: typing.Optional[str], name: str, domain: str
+            url: typing.Optional[str], name: typing.Optional[str], domain: str
     ) -> Answer:
         url = f"http://{domain}{url}"
         driver.get(url)

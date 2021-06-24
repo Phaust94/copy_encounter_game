@@ -3,12 +3,14 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 import typing
+import pickle
 
 from selenium import webdriver
 
 from copy_encounter_game.game.level import Level
 from copy_encounter_game.helpers import init
 from copy_encounter_game.constants import MANAGER_URL
+from copy_encounter_game.game.meta_info import LevelName
 
 __all__ = [
     "Game",
@@ -95,3 +97,38 @@ class Game:
             if i < len(self.levels) - 1:
                 time.sleep(sleep_time)
         return None
+
+    def to_file(self, path: str) -> None:
+        with open(path, "wb") as f:
+            pickle.dump(self, f)
+
+        return None
+
+    @classmethod
+    def from_file(cls, path: str) -> Game:
+        with open(path, "rb") as f:
+            orig_game: Game = pickle.load(f)
+        return orig_game
+
+    @property
+    def level_to_id(self) -> typing.Dict[int, Level]:
+        res = {level.level_id: level for level in self.levels}
+        return res
+
+    def __rshift__(self, other: Game) -> Game:
+        assert self.domain == other.domain and self.game_id == other.game_id, "Can't merge two unrelated games"
+        new_levels = {**other.level_to_id, **self.level_to_id}
+        new_levels = sorted(new_levels.values(), key=lambda x: x.level_id)
+        # noinspection PyArgumentList
+        res = self.__class__(self._domain, self._game_id, new_levels)
+        return res
+
+    def __setstate__(self, state: typing.Dict[str, typing.Any]):
+        for lvl in state["levels"]:
+            lvl: Level
+            n = lvl.name
+            n.__class__ = LevelName
+            lvl.name = n
+        self.__dict__ = state
+        return None
+

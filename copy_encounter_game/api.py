@@ -17,6 +17,7 @@ def save_game(
         path_to_store_game: str,
         chrome_driver_path: str,
         levels_subset: typing.Set[int] = None,
+        keep_existing: bool = True,
 ) -> None:
     orig_game = Game.from_html(
         source_game_id,
@@ -26,8 +27,15 @@ def save_game(
         levels_subset=levels_subset,
     )
 
-    with open(path_to_store_game, "wb") as f:
-        pickle.dump(orig_game, f)
+    if keep_existing:
+        try:
+            existing_game = Game.from_file(path_to_store_game)
+        except FileNotFoundError:
+            pass
+        else:
+            orig_game = orig_game >> existing_game
+
+    orig_game.to_file(path_to_store_game)
     return None
 
 
@@ -39,8 +47,7 @@ def load_game(
         chrome_driver_path: str,
         game_manipulation: typing.Callable[[Game], Game] = None,
 ) -> None:
-    with open(game_file_path, "rb") as f:
-        orig_game: Game = pickle.load(f)
+    orig_game = Game.from_file(game_file_path)
 
     orig_game.domain = target_domain
     orig_game.game_id = target_game_id

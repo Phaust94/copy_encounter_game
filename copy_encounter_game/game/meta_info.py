@@ -13,7 +13,7 @@ from selenium import webdriver
 from copy_encounter_game.helpers import ScriptedPart
 
 __all__ = [
-    "GameName",
+    "LevelName",
     "Autopass",
     "AnswerBlock",
     "SectorsToCover",
@@ -21,7 +21,7 @@ __all__ = [
 
 
 @dataclass
-class GameName:
+class LevelName:
     name: str = ""
 
     SCRIPT_SECTION = "GameEditor('./NameCommentEdit.aspx?gid={game_id}&level={level_id}', '');"
@@ -32,7 +32,7 @@ class GameName:
             driver: webdriver.Chrome,
             game_id: int,
             level_id: int,
-    ) -> GameName:
+    ) -> LevelName:
         script = cls.SCRIPT_SECTION.format(
             game_id=game_id,
             level_id=level_id,
@@ -218,3 +218,7 @@ class SectorsToCover:
 
         driver.execute_script(f"""$('#divSectorsSettins').find('input[title="Save"]').click()""")
         return None
+
+
+# Exists here for backwards compatibility
+GameName = LevelName

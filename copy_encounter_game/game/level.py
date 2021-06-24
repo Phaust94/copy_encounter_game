@@ -11,7 +11,7 @@ import itertools
 
 from selenium import webdriver
 
-from copy_encounter_game.game.meta_info import GameName, Autopass, AnswerBlock, SectorsToCover
+from copy_encounter_game.game.meta_info import LevelName, Autopass, AnswerBlock, SectorsToCover
 from copy_encounter_game.game.task import Task
 from copy_encounter_game.game.hint import Hint, PenalizedHint
 from copy_encounter_game.game.answer import Answer
@@ -27,7 +27,7 @@ class Level:
     domain: str
     game_id: int
     level_id: int
-    name: GameName = GameName()
+    name: LevelName = LevelName()
     autopass: Autopass = Autopass()
     answer_block: AnswerBlock = AnswerBlock()
     sectors_to_cover: SectorsToCover = SectorsToCover()
@@ -129,7 +129,7 @@ class Level:
             level_id: int,
     ) -> Level:
         driver.get(cls.current_level_url(domain, game_id, level_id))
-        name = GameName.from_html(driver, game_id, level_id)
+        name = LevelName.from_html(driver, game_id, level_id)
         ap = Autopass.from_html(driver)
         block = AnswerBlock.from_html(driver)
         sectors = SectorsToCover.from_html(driver)
