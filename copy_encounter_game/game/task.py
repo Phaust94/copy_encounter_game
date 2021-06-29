@@ -55,10 +55,10 @@ class Task:
                 pass
             else:
                 edit_btn.click()
-            # body = self.body.replace("`", "\\`")
+
             task_txt = driver.find_element_by_name("inputTask")
             task_txt.clear()
-            task_txt.send_keys(self.body)
+            driver.execute_script(f"""$('[name="inputTask"]').text(`{self.body}`)""")
 
             is_replace_checked = bool(driver.find_element_by_name("chkReplaceNlToBr").get_attribute("checked"))
             if is_replace_checked == self.html_raw:
