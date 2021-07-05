@@ -11,6 +11,7 @@ from copy_encounter_game.game.level import Level
 from copy_encounter_game.helpers import init
 from copy_encounter_game.constants import MANAGER_URL
 from copy_encounter_game.game.meta_info import LevelName
+from copy_encounter_game.game.game_files import GameFiles
 
 __all__ = [
     "Game",
@@ -22,6 +23,7 @@ class Game:
     _domain: str
     _game_id: int
     levels: typing.List[Level] = field(default_factory=list)
+    files: GameFiles = field(default_factory=GameFiles)
 
     @property
     def game_id(self) -> int:
@@ -67,9 +69,17 @@ class Game:
             chrome_driver_path: str,
             levels_subset: typing.Set[int] = None,
             sleep_time: int = 10,
+            download_files: bool = False,
+            files_location: str = None,
     ) -> Game:
         driver = init(creds, domain, chrome_driver_path)
         n_levels = cls.get_n_levels(driver, domain, game_id)
+
+        if download_files:
+            files = GameFiles.from_html(driver, game_id, domain, files_location)
+        else:
+            files = GameFiles()
+
         levels = []
         levels_to_copy = list(range(1, n_levels + 1))
         if levels_subset is not None:
@@ -82,7 +92,7 @@ class Game:
             if i < len(levels_to_copy) - 1:
                 time.sleep(sleep_time)
 
-        inst = cls(domain, game_id, levels)
+        inst = cls(domain, game_id, levels, files)
         return inst
 
     def to_html(
@@ -90,12 +100,17 @@ class Game:
             creds: typing.Dict[str, str],
             chrome_driver_path: str,
             sleep_time: int = 10,
+            upload_files: bool = False,
     ) -> None:
         driver = init(creds, self.domain, chrome_driver_path)
         for i, level in enumerate(self.levels):
             level.to_html(driver)
             if i < len(self.levels) - 1:
                 time.sleep(sleep_time)
+
+        if upload_files:
+            self.files.to_html(driver, self.game_id, self.domain)
+
         return None
 
     def to_file(self, path: str) -> None:

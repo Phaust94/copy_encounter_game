@@ -9,6 +9,7 @@ from copy_encounter_game.constants import ADMIN_URL
 __all__ = [
     "init",
     "ScriptedPart",
+    "chunks",
 ]
 
 
@@ -36,6 +37,7 @@ def init(
 class ScriptedPart:
     driver: webdriver.Chrome
     script: str
+    explicitely_close_window: bool = True
 
     def __enter__(self):
         self.driver.execute_script(self.script)
@@ -43,6 +45,13 @@ class ScriptedPart:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.driver.close()
-        self.driver.switch_to_window(self.driver.window_handles[0])
+        if self.explicitely_close_window:
+            self.driver.close()
+            self.driver.switch_to_window(self.driver.window_handles[0])
         return None
+
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
