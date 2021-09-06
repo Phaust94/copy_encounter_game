@@ -4,13 +4,14 @@ Game hints
 
 from __future__ import annotations
 
+import math
 import time
 from dataclasses import dataclass, field
 import typing
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import ScriptedPart
+from copy_encounter_game.helpers import ScriptedPart, DedicatedItem
 
 __all__ = [
     "Bonus",
@@ -18,7 +19,7 @@ __all__ = [
 
 
 @dataclass
-class Bonus:
+class Bonus(DedicatedItem):
     name: str
     bonus_task: str = ""
     answers: typing.List[str] = field(default_factory=list)
@@ -28,6 +29,7 @@ class Bonus:
     availability_window: typing.Optional[typing.Tuple[int, int, int]] = None
     bonus_time: typing.Tuple[int, int, int] = (0, 0, 0)
     hint_text: str = ""
+    dedicated_to_who: int = 0
 
     @staticmethod
     def get_levels(
@@ -115,6 +117,8 @@ class Bonus:
                 return ans
             """)
 
+            who = cls._get_for_who(driver)
+
             # noinspection PyTypeChecker
             inst = cls(
                 str_vals[0], str_vals[1],
@@ -125,6 +129,7 @@ class Bonus:
                 availability_window,
                 bonus_time,
                 str_vals[-1],
+                who,
             )
         return inst
 
@@ -190,6 +195,10 @@ class Bonus:
                     driver.execute_script(f"""$('.enCheckBox[name="{lvl_name}"]').click()""")
                     driver.execute_script(f"""$('.enCheckBox[name="{lvl_name}"]').trigger('onclick')""")
 
+            n_times_to_click = math.ceil((len(self.answers) - 10) / 30)
+            for _ in range(n_times_to_click):
+                driver.execute_script("$('a.Text4')[2].click()")
+
             answer_names = driver.execute_script("""
                 var levels = [];
                 $('input[name^="answer_"]').each(function(i, e){levels.push($(e).attr('name'))});
@@ -197,6 +206,8 @@ class Bonus:
             """)
             for ans, ans_name in zip(self.answers, answer_names):
                 driver.execute_script(f"""$('input[name="{ans_name}"]').val(`{ans}`)""")
+
+            self._set_for_who(driver, self.dedicated_to_who)
 
             # noinspection PyBroadException
             try:

@@ -10,6 +10,7 @@ __all__ = [
     "init",
     "ScriptedPart",
     "chunks",
+    "DedicatedItem",
 ]
 
 
@@ -55,3 +56,37 @@ def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
+
+
+class DedicatedItem:
+
+    @staticmethod
+    def _get_for_who(driver: webdriver.Chrome) -> int:
+        hint_for = driver.execute_script(
+            """
+                        var opt = $('select.input')[0].options;
+                        var team_id = null;
+                        for (let i = 0; i < opt.length;i++) {
+                            if (opt[i].selected) {
+                                 team_id = opt[i].value;
+                            }
+                        }
+                        team_id = parseInt(team_id)
+                        return team_id;
+                    """
+        )
+        return hint_for
+
+    @staticmethod
+    def _set_for_who(driver: webdriver.Chrome, who: int) -> None:
+        driver.execute_script(
+            f"""
+                            var opt = $('select.input')[0].options;
+                            for (let i = 0; i < opt.length;i++) {{
+                                if (opt[i].value == {who}) {{
+                                     opt[i].selected = true;
+                                }}
+                            }}
+                        """
+        )
+        return None

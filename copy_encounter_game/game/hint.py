@@ -10,7 +10,7 @@ import typing
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import ScriptedPart
+from copy_encounter_game.helpers import ScriptedPart, DedicatedItem
 
 __all__ = [
     "Hint",
@@ -19,9 +19,10 @@ __all__ = [
 
 
 @dataclass
-class Hint:
+class Hint(DedicatedItem):
     hint_time: typing.Tuple[int, int, int, int] = (0, 0, 0, 0)
     hint_text: str = ""
+    dedicated_to_who: int = 0
 
     @classmethod
     def from_html(
@@ -39,9 +40,10 @@ class Hint:
                 for name in params
             ]
             txt = driver.execute_script("return $('.textarea_blank').text()")
+            who = cls._get_for_who(driver)
 
             # noinspection PyTypeChecker
-            inst = cls(tuple(vals), txt)
+            inst = cls(tuple(vals), txt, who)
         return inst
 
     def to_html(
@@ -63,6 +65,8 @@ class Hint:
 
             txt = self.hint_text.replace("\"", "\\\"").replace("`", "\\`")
             driver.execute_script(f"""$('textarea[name="NewPrompt"]').text(`{txt}`)""")
+            self._set_for_who(driver, self.dedicated_to_who)
+
             # noinspection PyBroadException
             try:
                 driver.find_element_by_id('btnUpdate').click()
@@ -98,9 +102,12 @@ class PenalizedHint(Hint):
 
             confirmation_on = bool(driver.find_element_by_id("chkRequestPenaltyConfirm").get_attribute("checked"))
             header = driver.execute_script("""return $('.textarea_blank[name="txtPenaltyComment"]').text()""")
-
+            who = cls._get_for_who(driver)
             # noinspection PyTypeChecker
-            inst = cls(tuple(vals[:4]), txt, header, confirmation_on, tuple(vals[4:]))
+            inst = cls(
+                tuple(vals[:4]), txt, who,
+                header, confirmation_on, tuple(vals[4:])
+            )
         return inst
 
     def to_html(
@@ -131,6 +138,8 @@ class PenalizedHint(Hint):
             if self.additional_confirmation_on ^ is_checked:
                 driver.execute_script("""$('#chkRequestPenaltyConfirm').click()""")
                 driver.execute_script("""$('#chkRequestPenaltyConfirm').trigger('onclick')""")
+
+            self._set_for_who(driver, self.dedicated_to_who)
 
             # noinspection PyBroadException
             try:

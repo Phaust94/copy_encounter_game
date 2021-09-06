@@ -16,6 +16,7 @@ from copy_encounter_game.game.task import Task
 from copy_encounter_game.game.hint import Hint, PenalizedHint
 from copy_encounter_game.game.answer import Answer
 from copy_encounter_game.game.bonus import Bonus
+from copy_encounter_game.helpers import chunks
 
 __all__ = [
     "Level",
@@ -195,13 +196,32 @@ class Level:
 
     def store_answers(self, driver: webdriver.Chrome) -> None:
         driver.find_element_by_id(Answer.SHOW_ANSWERS_ID).click()
-        if not self.has_sectors and self.answers:
-            driver.execute_script("""$("a[title='Add answers']").click()""")
-            self.answers[0].to_html(driver, has_sectors=False)
-        else:
-            for answer in self.answers:
-                driver.execute_script("""$("a[title='Add sector']").click()""")
-                answer.to_html(driver, has_sectors=True)
+
+        has_no_sectors = bool(not self.has_sectors and self.answers)
+        initial_and_other_func = {
+            True: (
+                """$("a[title='Add answers']").click()""",
+                """$("a[title='Add answers']").click()""",
+            ),
+            False: (
+                """$("a[title='Add sector']").click()""",
+                """$("a[title='Add answers'][{j}]").click()""",
+            ),
+        }[has_no_sectors]
+        funcs = itertools.chain(
+            [(initial_and_other_func[0], True)],
+            itertools.repeat((initial_and_other_func[1], False)),
+        )
+
+        for i, answer in enumerate(self.answers):
+            for part, (func, is_first_time) in zip(answer.parts(), funcs):
+                func_formatted = func.format(j=i+1)
+                driver.execute_script(func_formatted)
+                part.to_html(
+                    driver,
+                    has_sectors=not has_no_sectors,
+                    is_first_time=is_first_time,
+                )
         return None
 
     def to_html(self, driver: webdriver.Chrome) -> None:
@@ -217,7 +237,7 @@ class Level:
             self.store_hints(driver, type_)
             time.sleep(2)
         self.store_answers(driver)
-        if self.has_sectors:
+        if self.has_sectors and len(self.answers) != 1:
             time.sleep(2)
             self.sectors_to_cover.to_html(driver)
         return None

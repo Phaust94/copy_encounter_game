@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import ScriptedPart
+from copy_encounter_game.helpers import ScriptedPart, DedicatedItem
 
 __all__ = [
     "Task",
@@ -16,9 +16,10 @@ __all__ = [
 
 
 @dataclass
-class Task:
+class Task(DedicatedItem):
     html_raw: bool = False
     body: str = ""
+    dedicated_to_who: int = 0
 
     TASK_ID_ELEMENT = "ctl02_ctl00_TasksRepeater_ctl00_lnkTaskEditor"
     TASK_ID_ADD = "ctl02_ctl00_lnkTaskAdd"
@@ -35,8 +36,9 @@ class Task:
             edit_btn.click()
             task_txt = driver.find_element_by_name("inputTask").text
             replace_chckbox = bool(driver.find_element_by_name("chkReplaceNlToBr").get_attribute("checked"))
+            who = cls._get_for_who(driver)
 
-            inst = cls(not replace_chckbox, task_txt)
+            inst = cls(not replace_chckbox, task_txt, who)
         return inst
 
     def to_html(self, driver: webdriver.Chrome) -> None:
@@ -63,6 +65,8 @@ class Task:
             is_replace_checked = bool(driver.find_element_by_name("chkReplaceNlToBr").get_attribute("checked"))
             if is_replace_checked == self.html_raw:
                 driver.execute_script(f"""$('input[name="chkReplaceNlToBr"]').click()""")
+
+            self._set_for_who(driver, self.dedicated_to_who)
             # noinspection PyBroadException
             try:
                 btn = driver.find_element_by_id("btnUpdate")
