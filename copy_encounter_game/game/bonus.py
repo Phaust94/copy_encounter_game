@@ -11,7 +11,7 @@ import typing
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import ScriptedPart, DedicatedItem
+from copy_encounter_game.helpers import ScriptedPart, DedicatedItem, wait
 
 __all__ = [
     "Bonus",
@@ -143,12 +143,14 @@ class Bonus(DedicatedItem):
                 driver.find_element_by_css_selector('a[title="Edit"]').click()
             except Exception:
                 pass
-            time.sleep(0.7)
+
+            btn_id = "rbCustomLevels" if self.levels_available else "rbAllLevels"
+            wait(driver, btn_id)
 
             if self.levels_available:
-                driver.execute_script("""$('#rbCustomLevels').click()""")
+                driver.execute_script(f"""$('#{btn_id}').click()""")
             else:
-                driver.execute_script("""$('#rbAllLevels').click()""")
+                driver.execute_script(f"""$('#{btn_id}').click()""")
 
             checkboxes = [
                 "chkAbsoluteLimit", "chkDelay", "chkRelativeLimit",

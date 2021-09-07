@@ -15,6 +15,7 @@ from copy_encounter_game.helpers import chunks
 __all__ = [
     "Answer",
     "MAX_ANSWERS_PER_SECTOR",
+    "AnswerOption",
 ]
 
 MAX_ANSWERS_PER_SECTOR = 10

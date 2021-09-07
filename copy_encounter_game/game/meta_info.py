@@ -10,7 +10,7 @@ import typing
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import ScriptedPart
+from copy_encounter_game.helpers import ScriptedPart, wait
 
 __all__ = [
     "LevelName",
@@ -85,11 +85,10 @@ class Autopass:
             return cls(enabled)
 
         elem.click()
-        time.sleep(0.7)
+        wait(driver, "chkTimeoutPenalty")
         autopass_form = driver.find_element_by_id(cls.SETTINGS_ID)
         params = [
             "txtApHours", "txtApMinutes", "txtApSeconds",
-            # "chkTimeoutPenalty",
             "txtApPenaltyHours", "txtApPenaltyMinutes", "txtApPenaltySeconds",
         ]
         vals = [
@@ -102,7 +101,7 @@ class Autopass:
     def to_html(self, driver: webdriver.Chrome) -> None:
         elem = driver.find_element_by_id(self.STATUS_ID)
         elem.click()
-        time.sleep(0.3)
+        wait(driver, "chkTimeoutPenalty")
 
         is_checked = bool(driver.find_element_by_id("chkTimeoutPenalty").get_attribute("checked"))
         if self.penalty ^ is_checked:
@@ -111,7 +110,6 @@ class Autopass:
 
         params = [
             "txtApHours", "txtApMinutes", "txtApSeconds",
-            # "chkTimeoutPenalty",
             "txtApPenaltyHours", "txtApPenaltyMinutes", "txtApPenaltySeconds",
         ]
 

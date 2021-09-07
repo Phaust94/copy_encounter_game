@@ -10,7 +10,7 @@ import typing
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import ScriptedPart, DedicatedItem
+from copy_encounter_game.helpers import ScriptedPart, DedicatedItem, wait
 
 __all__ = [
     "Hint",
@@ -56,7 +56,9 @@ class Hint(DedicatedItem):
                 driver.find_element_by_id("lnkEdit").click()
             except Exception:
                 pass
-            time.sleep(0.7)
+
+            wait(driver, "NewPrompt", "NAME")
+
             params = [
                 "NewPromptTimeoutDays", "NewPromptTimeoutHours", "NewPromptTimeoutMinutes", "NewPromptTimeoutSeconds"
             ]
@@ -120,7 +122,9 @@ class PenalizedHint(Hint):
                 driver.find_element_by_id("lnkEdit").click()
             except Exception:
                 pass
-            time.sleep(0.7)
+
+            wait(driver, "NewPrompt", "NAME")
+
             params = [
                 "NewPromptTimeoutDays", "NewPromptTimeoutHours", "NewPromptTimeoutMinutes", "NewPromptTimeoutSeconds",
                 "PenaltyPromptHours", "PenaltyPromptMinutes", "PenaltyPromptSeconds",

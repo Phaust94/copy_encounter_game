@@ -4,6 +4,7 @@ import time
 from dataclasses import dataclass, field
 import typing
 import pickle
+import os
 
 from selenium import webdriver
 
@@ -12,6 +13,7 @@ from copy_encounter_game.helpers import init
 from copy_encounter_game.constants import MANAGER_URL
 from copy_encounter_game.game.meta_info import LevelName
 from copy_encounter_game.game.game_files import GameFiles
+from copy_encounter_game.game.game_custom_info import GameCustomInfo
 
 __all__ = [
     "Game",
@@ -71,6 +73,8 @@ class Game:
             sleep_time: int = 10,
             download_files: bool = False,
             files_location: str = None,
+            path_template: str = None,
+            read_cache: bool = False,
     ) -> Game:
         driver = init(creds, domain, chrome_driver_path)
         n_levels = cls.get_n_levels(driver, domain, game_id)
@@ -85,9 +89,16 @@ class Game:
         if levels_subset is not None:
             levels_to_copy = [el for el in levels_to_copy if el in levels_subset]
         for i, level_id in enumerate(levels_to_copy):
-            level = Level.from_html(
-                driver, domain, game_id, level_id
-            )
+
+            tmp_file = path_template.format(lvl_id=level_id)
+            if read_cache and os.path.exists(tmp_file):
+                level = Level.from_file(tmp_file)
+            else:
+                level = Level.from_html(
+                    driver, domain, game_id, level_id
+                )
+                level.to_file(tmp_file)
+
             levels.append(level)
             if i < len(levels_to_copy) - 1:
                 time.sleep(sleep_time)
@@ -101,22 +112,31 @@ class Game:
             chrome_driver_path: str,
             sleep_time: int = 10,
             upload_files: bool = False,
+            keep_existing_hints: bool = False,
+            keep_existing_penalized_hints: bool = False,
+            keep_existing_bonuses: bool = False,
+            keep_existing_answers: bool = False,
     ) -> None:
-        driver = init(creds, self.domain, chrome_driver_path)
+        gci = GameCustomInfo(
+            self.domain, self.game_id, creds, chrome_driver_path,
+            keep_existing_hints=keep_existing_hints,
+            keep_existing_penalized_hints=keep_existing_penalized_hints,
+            keep_existing_bonuses=keep_existing_bonuses,
+            keep_existing_answers=keep_existing_answers,
+        )
         for i, level in enumerate(self.levels):
-            level.to_html(driver)
+            level.to_html(gci)
             if i < len(self.levels) - 1:
                 time.sleep(sleep_time)
 
         if upload_files:
-            self.files.to_html(driver, self.game_id, self.domain)
+            self.files.to_html(gci.driver, self.game_id, self.domain)
 
         return None
 
     def to_file(self, path: str) -> None:
         with open(path, "wb") as f:
             pickle.dump(self, f)
-
         return None
 
     @classmethod

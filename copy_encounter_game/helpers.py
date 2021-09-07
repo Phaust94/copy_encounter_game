@@ -3,34 +3,27 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from selenium import webdriver
-
-from copy_encounter_game.constants import ADMIN_URL
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.common.by import By
 
 __all__ = [
     "init",
     "ScriptedPart",
     "chunks",
     "DedicatedItem",
+    "wait",
 ]
 
 
 def init(
         creds: dict,
         domain: str,
-        chrome_driver_path: str,
+        chrome_driver_path: str = None,
+        driver: webdriver.Chrome = None,
 ) -> webdriver.Chrome:
-    driver = webdriver.Chrome(
-        executable_path=chrome_driver_path,
-    )
-    driver.get(ADMIN_URL.format(domain=domain))
 
-    login = driver.find_element_by_id("txtLogin")
-    login.send_keys(creds["user"])
-    pwd = driver.find_element_by_id("txtPassword")
-    pwd.send_keys(creds["password"])
-
-    sbm = driver.find_element_by_xpath("/html/body/div[1]/form/div/div[1]/input[3]")
-    sbm.submit()
     return driver
 
 
@@ -39,17 +32,25 @@ class ScriptedPart:
     driver: webdriver.Chrome
     script: str
     explicitely_close_window: bool = True
+    wait_for_value: str = None
+    wait_for_type: str = "ID"
+    timeout: int = 2
 
     def __enter__(self):
         self.driver.execute_script(self.script)
-        self.driver.switch_to_window(self.driver.window_handles[1])
+        self.driver.switch_to.window(self.driver.window_handles[1])
+        if self.wait_for_value:
+            self.wait()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.explicitely_close_window:
             self.driver.close()
-            self.driver.switch_to_window(self.driver.window_handles[0])
+            self.driver.switch_to.window(self.driver.window_handles[0])
         return None
+
+    def wait(self) -> None:
+        return wait(self.driver, self.wait_for_value, self.wait_for_type, self.timeout)
 
 
 def chunks(lst, n):
@@ -90,3 +91,18 @@ class DedicatedItem:
                         """
         )
         return None
+
+
+def wait(
+    driver: webdriver.Chrome,
+    value: str,
+    type_: str = "ID",
+    timeout: int = 2,
+) -> None:
+    type_ = getattr(By, type_)
+    try:
+        element_present = ec.presence_of_element_located((type_, value))
+        WebDriverWait(driver, timeout).until(element_present)
+    except TimeoutException:
+        pass
+    return None

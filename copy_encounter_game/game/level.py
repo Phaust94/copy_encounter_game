@@ -8,15 +8,18 @@ import time
 from dataclasses import dataclass, field
 import typing
 import itertools
+import pickle
 
 from selenium import webdriver
+import selenium.common.exceptions
 
 from copy_encounter_game.game.meta_info import LevelName, Autopass, AnswerBlock, SectorsToCover
 from copy_encounter_game.game.task import Task
 from copy_encounter_game.game.hint import Hint, PenalizedHint
 from copy_encounter_game.game.answer import Answer
 from copy_encounter_game.game.bonus import Bonus
-from copy_encounter_game.helpers import chunks
+from copy_encounter_game.helpers import wait
+from copy_encounter_game.game.game_custom_info import GameCustomInfo
 
 __all__ = [
     "Level",
@@ -92,7 +95,7 @@ class Level:
     def load_answers(cls, driver: webdriver.Chrome, domain: str) -> typing.List[Answer]:
         # noinspection PyBroadException
         driver.find_element_by_id(Answer.SHOW_ANSWERS_ID).click()
-        time.sleep(1)
+        wait(driver, "hdnSectorNames_0")
         # noinspection PyBroadException
         try:
             edit_urls = driver.execute_script("""
@@ -174,8 +177,12 @@ class Level:
         )
         return hint_url
 
-    def store_hints(self, driver: webdriver.Chrome, type_: int = 0) -> None:
-        hint_urls = self.find_hint_urls(driver, type_)
+    def store_hints(self, gci: GameCustomInfo, type_: int = 0) -> None:
+        driver = gci.driver
+        if gci.keep_existing_hint_type(type_):
+            hint_urls = []
+        else:
+            hint_urls = self.find_hint_urls(driver, type_)
         hints = {
             0: self.hints,
             1: self.penalized_hints,
@@ -186,7 +193,14 @@ class Level:
                 hint_url = self.hint_edit_url(type_)
             elif hint is None:
                 continue
-            hint.to_html(driver, hint_url)
+
+            try:
+                hint.to_html(driver, hint_url)
+            except selenium.common.exceptions.JavascriptException:
+                gci.login()
+                gci.navigate_to_level(self.level_id)
+                hint.to_html(driver, hint_url)
+
             time.sleep(2)
         return None
 
@@ -194,7 +208,8 @@ class Level:
     def has_sectors(self) -> bool:
         return self.answers and not(len(self.answers) == 1 and self.answers[0].name is None)
 
-    def store_answers(self, driver: webdriver.Chrome) -> None:
+    def store_answers(self, gci: GameCustomInfo) -> None:
+        driver = gci.driver
         driver.find_element_by_id(Answer.SHOW_ANSWERS_ID).click()
 
         has_no_sectors = bool(not self.has_sectors and self.answers)
@@ -216,16 +231,27 @@ class Level:
         for i, answer in enumerate(self.answers):
             for part, (func, is_first_time) in zip(answer.parts(), funcs):
                 func_formatted = func.format(j=i+1)
-                driver.execute_script(func_formatted)
-                part.to_html(
-                    driver,
-                    has_sectors=not has_no_sectors,
-                    is_first_time=is_first_time,
-                )
+                try:
+                    driver.execute_script(func_formatted)
+                    part.to_html(
+                        driver,
+                        has_sectors=not has_no_sectors,
+                        is_first_time=is_first_time,
+                    )
+                except selenium.common.exceptions.JavascriptException:
+                    gci.login()
+                    gci.navigate_to_level(self.level_id)
+                    driver.execute_script(func_formatted)
+                    part.to_html(
+                        driver,
+                        has_sectors=not has_no_sectors,
+                        is_first_time=is_first_time,
+                    )
         return None
 
-    def to_html(self, driver: webdriver.Chrome) -> None:
-        driver.get(self.current_level_url(self.domain, self.game_id, self.level_id))
+    def to_html(self, gci: GameCustomInfo) -> None:
+        driver = gci.driver
+        gci.navigate_to_level(self.level_id)
         self.name.to_html(driver, self.game_id, self.level_id)
         self.autopass.to_html(driver)
         self.answer_block.to_html(driver)
@@ -234,10 +260,21 @@ class Level:
             task.to_html(driver)
             time.sleep(2)
         for type_ in range(3):
-            self.store_hints(driver, type_)
+            self.store_hints(gci, type_)
             time.sleep(2)
-        self.store_answers(driver)
+        self.store_answers(gci)
         if self.has_sectors and len(self.answers) != 1:
             time.sleep(2)
             self.sectors_to_cover.to_html(driver)
         return None
+
+    def to_file(self, path: str) -> None:
+        with open(path, "wb") as f:
+            pickle.dump(self, f)
+        return None
+
+    @classmethod
+    def from_file(cls, path: str) -> Level:
+        with open(path, "rb") as f:
+            orig_game: Level = pickle.load(f)
+        return orig_game
