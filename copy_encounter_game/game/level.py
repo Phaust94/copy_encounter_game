@@ -223,12 +223,12 @@ class Level:
                 """$("a[title='Add answers'][{j}]").click()""",
             ),
         }[has_no_sectors]
-        funcs = itertools.chain(
-            [(initial_and_other_func[0], True)],
-            itertools.repeat((initial_and_other_func[1], False)),
-        )
 
         for i, answer in enumerate(self.answers):
+            funcs = itertools.chain(
+                [(initial_and_other_func[0], True)],
+                itertools.repeat((initial_and_other_func[1], False)),
+            )
             for part, (func, is_first_time) in zip(answer.parts(), funcs):
                 func_formatted = func.format(j=i+1)
                 try:
