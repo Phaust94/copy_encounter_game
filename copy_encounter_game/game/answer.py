@@ -9,7 +9,7 @@ import typing
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import chunks
+from copy_encounter_game.helpers import chunks, PrettyPrinter
 
 
 __all__ = [
@@ -21,18 +21,39 @@ __all__ = [
 MAX_ANSWERS_PER_SECTOR = 10
 
 
-@dataclass
-class AnswerOption:
+@dataclass(repr=False)
+class AnswerOption(PrettyPrinter):
     text: str
     dedicated_to_who: int = 0
 
 
-@dataclass
-class Answer:
+@dataclass(repr=False)
+class Answer(PrettyPrinter):
     options: typing.List[AnswerOption]
     name: typing.Optional[str] = None
 
     SHOW_ANSWERS_ID = "AnswersTable_ctl00_lnkShowAnswers"
+
+    @classmethod
+    def from_options(
+        cls,
+        options: typing.Union[
+            str,
+            typing.List[typing.Union[str, AnswerOption]],
+        ],
+        name: str = None,
+    ) -> Answer:
+
+        if isinstance(options, str):
+            options = [options]
+
+        new_opt = []
+        for opt in options:
+            if isinstance(opt, str):
+                opt = AnswerOption(opt)
+            new_opt.append(opt)
+        inst = cls(new_opt, name)
+        return inst
 
     @classmethod
     def from_html(
@@ -96,12 +117,16 @@ class Answer:
         # noinspection PyBroadException
         opts = {
             (True, True): "btnSaveSector",
-            (True, False): "AnswersTable_ctl00_ctl06_SectorsRepeater_ctl00_pnlNewAnswers_btnSave",
             (False, False): "AnswersTable_ctl00_NewAnswerEditor_ctl00_btnSave",
             (False, True): "AnswersTable_ctl00_NewAnswerEditor_ctl00_btnSave",
         }
-        btn_name = opts[(has_sectors, is_first_time)]
-        script = f"""$('input[name="{btn_name}"]').click()"""
+        if (has_sectors, is_first_time) in opts:
+            btn_name = opts[(has_sectors, is_first_time)]
+            script = f"""$('input[name="{btn_name}"]').click()"""
+        elif (has_sectors, is_first_time) == (True, False):
+            script = f"""$('input[title="Save"]').click()"""
+        else:
+            raise ValueError("Impossible")
         driver.execute_script(script)
 
         return None

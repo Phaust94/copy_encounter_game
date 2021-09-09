@@ -9,7 +9,7 @@ import os
 from selenium import webdriver
 
 from copy_encounter_game.game.level import Level
-from copy_encounter_game.helpers import init
+from copy_encounter_game.helpers import PrettyPrinter
 from copy_encounter_game.constants import MANAGER_URL
 from copy_encounter_game.game.meta_info import LevelName
 from copy_encounter_game.game.game_files import GameFiles
@@ -20,8 +20,8 @@ __all__ = [
 ]
 
 
-@dataclass
-class Game:
+@dataclass(repr=False)
+class Game(PrettyPrinter):
     _domain: str
     _game_id: int
     levels: typing.List[Level] = field(default_factory=list)
@@ -76,7 +76,8 @@ class Game:
             path_template: str = None,
             read_cache: bool = False,
     ) -> Game:
-        driver = init(creds, domain, chrome_driver_path)
+        gci = GameCustomInfo(domain, game_id, creds, chrome_driver_path)
+        driver = gci.driver
         n_levels = cls.get_n_levels(driver, domain, game_id)
 
         if download_files:

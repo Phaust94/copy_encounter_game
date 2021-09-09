@@ -8,15 +8,15 @@ from dataclasses import dataclass
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import ScriptedPart, DedicatedItem
+from copy_encounter_game.helpers import ScriptedPart, DedicatedItem, PrettyPrinter
 
 __all__ = [
     "Task",
 ]
 
 
-@dataclass
-class Task(DedicatedItem):
+@dataclass(repr=False)
+class Task(DedicatedItem, PrettyPrinter):
     html_raw: bool = False
     body: str = ""
     dedicated_to_who: int = 0

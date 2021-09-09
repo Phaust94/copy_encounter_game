@@ -12,15 +12,15 @@ import requests
 from selenium import webdriver
 
 from copy_encounter_game.constants import MANAGER_URL, CHUNK_SIZE_FILES
-from copy_encounter_game.helpers import chunks, ScriptedPart
+from copy_encounter_game.helpers import chunks, ScriptedPart, PrettyPrinter
 
 __all__ = [
     "GameFiles",
 ]
 
 
-@dataclass
-class GameFiles:
+@dataclass(repr=False)
+class GameFiles(PrettyPrinter):
     file_urls: typing.List[str] = field(default_factory=list)
     file_location: str = None
 

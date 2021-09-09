@@ -5,21 +5,20 @@ Game hints
 from __future__ import annotations
 
 import math
-import time
 from dataclasses import dataclass, field
 import typing
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import ScriptedPart, DedicatedItem, wait
+from copy_encounter_game.helpers import ScriptedPart, DedicatedItem, wait, PrettyPrinter
 
 __all__ = [
     "Bonus",
 ]
 
 
-@dataclass
-class Bonus(DedicatedItem):
+@dataclass(repr=False)
+class Bonus(DedicatedItem, PrettyPrinter):
     name: str
     bonus_task: str = ""
     answers: typing.List[str] = field(default_factory=list)

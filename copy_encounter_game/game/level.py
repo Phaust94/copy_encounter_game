@@ -18,7 +18,7 @@ from copy_encounter_game.game.task import Task
 from copy_encounter_game.game.hint import Hint, PenalizedHint
 from copy_encounter_game.game.answer import Answer
 from copy_encounter_game.game.bonus import Bonus
-from copy_encounter_game.helpers import wait
+from copy_encounter_game.helpers import wait, PrettyPrinter, wait_url_contains
 from copy_encounter_game.game.game_custom_info import GameCustomInfo
 
 __all__ = [
@@ -26,8 +26,8 @@ __all__ = [
 ]
 
 
-@dataclass
-class Level:
+@dataclass(repr=False)
+class Level(PrettyPrinter):
     domain: str
     game_id: int
     level_id: int
@@ -220,10 +220,10 @@ class Level:
             ),
             False: (
                 """$("a[title='Add sector']").click()""",
-                """$("a[title='Add answers'][{j}]").click()""",
+                """$("a[title='Add answers']")[{j}].click()""",
             ),
         }[has_no_sectors]
-
+        # TODO: fix this when many sectors with more than 10 codes. Currently fails after 1st sector completes
         for i, answer in enumerate(self.answers):
             funcs = itertools.chain(
                 [(initial_and_other_func[0], True)],
@@ -238,6 +238,7 @@ class Level:
                         has_sectors=not has_no_sectors,
                         is_first_time=is_first_time,
                     )
+                    wait_url_contains(driver, "addanswers", contains=False)
                 except selenium.common.exceptions.JavascriptException:
                     gci.login()
                     gci.navigate_to_level(self.level_id)

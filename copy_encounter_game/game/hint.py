@@ -4,13 +4,12 @@ Game hints
 
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
 import typing
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import ScriptedPart, DedicatedItem, wait
+from copy_encounter_game.helpers import ScriptedPart, DedicatedItem, wait, PrettyPrinter
 
 __all__ = [
     "Hint",
@@ -18,8 +17,8 @@ __all__ = [
 ]
 
 
-@dataclass
-class Hint(DedicatedItem):
+@dataclass(repr=False)
+class Hint(DedicatedItem, PrettyPrinter):
     hint_time: typing.Tuple[int, int, int, int] = (0, 0, 0, 0)
     hint_text: str = ""
     dedicated_to_who: int = 0
@@ -78,8 +77,8 @@ class Hint(DedicatedItem):
         return None
 
 
-@dataclass
-class PenalizedHint(Hint):
+@dataclass(repr=False)
+class PenalizedHint(Hint, PrettyPrinter):
     hint_description: str = ""
     additional_confirmation_on: bool = True
     penalty_time: typing.Tuple[int, int, int] = (0, 0, 0)

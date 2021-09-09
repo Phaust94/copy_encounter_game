@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -9,22 +9,12 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 
 __all__ = [
-    "init",
     "ScriptedPart",
     "chunks",
     "DedicatedItem",
-    "wait",
+    "wait", "wait_url_contains",
+    "PrettyPrinter",
 ]
-
-
-def init(
-        creds: dict,
-        domain: str,
-        chrome_driver_path: str = None,
-        driver: webdriver.Chrome = None,
-) -> webdriver.Chrome:
-
-    return driver
 
 
 @dataclass
@@ -98,11 +88,59 @@ def wait(
     value: str,
     type_: str = "ID",
     timeout: int = 2,
+    wait_for_visible: bool = True,
 ) -> None:
     type_ = getattr(By, type_)
+    wait_func = "presence_of_element_located" if wait_for_visible else "invisibility_of_element_located"
     try:
-        element_present = ec.presence_of_element_located((type_, value))
+        wait_func_obj = getattr(ec, wait_func)
+        element_present = wait_func_obj((type_, value))
         WebDriverWait(driver, timeout).until(element_present)
     except TimeoutException:
         pass
     return None
+
+
+def wait_url_contains(
+    driver: webdriver.Chrome,
+    value: str,
+    timeout: int = 2,
+    contains: bool = True,
+) -> None:
+    wait_func = "url_contains" if contains else "url_not_contains"
+    try:
+        wait_func_obj = getattr(ec, wait_func)
+        element_present = wait_func_obj(value)
+        WebDriverWait(driver, timeout).until(element_present)
+    except TimeoutException:
+        pass
+    return None
+
+
+@dataclass
+class PrettyPrinter:
+    def __str__(self):
+        lines = [self.__class__.__name__ + ':']
+        for f in fields(self):
+            lines += '{}: {!r}'.format(f.name, getattr(self, f.name)).split('\n')
+        return '\n    '.join(lines)
+
+    def __repr__(self):
+        return str(self)
+
+
+# noinspection PyPep8Naming
+class url_not_contains(object):
+    """ An expectation for checking that the current url DOESN'T contain a
+    case-sensitive substring.
+    url is the fragment of url expected,
+    returns True when the url matches, False otherwise
+    """
+    def __init__(self, url):
+        self.url = url
+
+    def __call__(self, driver):
+        return self.url not in driver.current_url
+
+
+ec.url_not_contains = url_not_contains

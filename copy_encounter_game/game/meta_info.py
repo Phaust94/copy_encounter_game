@@ -4,13 +4,12 @@ Game meta info
 
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
 import typing
 
 from selenium import webdriver
 
-from copy_encounter_game.helpers import ScriptedPart, wait
+from copy_encounter_game.helpers import ScriptedPart, wait, PrettyPrinter
 
 __all__ = [
     "LevelName",
@@ -20,8 +19,8 @@ __all__ = [
 ]
 
 
-@dataclass
-class LevelName:
+@dataclass(repr=False)
+class LevelName(PrettyPrinter):
     name: str = ""
 
     SCRIPT_SECTION = "GameEditor('./NameCommentEdit.aspx?gid={game_id}&level={level_id}', '');"
@@ -61,8 +60,8 @@ class LevelName:
         return None
 
 
-@dataclass
-class Autopass:
+@dataclass(repr=False)
+class Autopass(PrettyPrinter):
     enabled: bool = False
     autopass_time: typing.Tuple[int, int, int] = (0, 0, 0)
     penalty_time: typing.Tuple[int, int, int] = (0, 0, 0)
@@ -120,8 +119,8 @@ class Autopass:
         return None
 
 
-@dataclass
-class AnswerBlock:
+@dataclass(repr=False)
+class AnswerBlock(PrettyPrinter):
     enabled: bool = False
     individual: bool = False
     n_tries: int = 0
@@ -177,8 +176,8 @@ class AnswerBlock:
         return None
 
 
-@dataclass
-class SectorsToCover:
+@dataclass(repr=False)
+class SectorsToCover(PrettyPrinter):
     n_sectors: typing.Optional[int] = None
 
     STATUS_ID = "lnkSectorsSettings"

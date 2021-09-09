@@ -8,14 +8,15 @@ import typing
 from selenium import webdriver
 
 from copy_encounter_game.constants import ADMIN_URL
+from copy_encounter_game.helpers import PrettyPrinter
 
 __all__ = [
     "GameCustomInfo"
 ]
 
 
-@dataclass
-class GameCustomInfo:
+@dataclass(repr=False)
+class GameCustomInfo(PrettyPrinter):
     domain: str
     game_id: int
     creds: typing.Dict[str, str]
