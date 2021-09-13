@@ -28,6 +28,14 @@ def save_game(
         dir_,
         f"{fname}_temp_lvl{{lvl_id}}.{ext}"
     )
+
+    existing_game = None
+    if keep_existing:
+        try:
+            existing_game = Game.from_file(path_to_store_game)
+        except FileNotFoundError:
+            pass
+
     orig_game = Game.from_html(
         source_game_id,
         source_domain,
@@ -37,17 +45,12 @@ def save_game(
         download_files=download_files,
         files_location=files_location,
         path_template=temp_fp,
-        read_cache=not keep_existing,
+        read_cache=not keep_existing or not existing_game,
         past_game=past_game,
     )
 
-    if keep_existing:
-        try:
-            existing_game = Game.from_file(path_to_store_game)
-        except FileNotFoundError:
-            pass
-        else:
-            orig_game = orig_game >> existing_game
+    if existing_game:
+        orig_game = orig_game >> existing_game
 
     orig_game.to_file(path_to_store_game)
     return None

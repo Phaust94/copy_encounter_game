@@ -102,10 +102,10 @@ class Game(PrettyPrinter):
                 )
                 level.to_file(tmp_file)
 
-            levels.append(level)
-            if i < len(levels_to_copy) - 1:
-                time.sleep(sleep_time)
+                if i < len(levels_to_copy) - 1:
+                    time.sleep(sleep_time)
 
+            levels.append(level)
         inst = cls(domain, game_id, levels, files)
         return inst
 
