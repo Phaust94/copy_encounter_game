@@ -131,10 +131,14 @@ class Level(PrettyPrinter):
             domain: str,
             game_id: int,
             level_id: int,
+            past_game: bool = False,
     ) -> Level:
         driver.get(cls.current_level_url(domain, game_id, level_id))
         name = LevelName.from_html(driver, game_id, level_id)
-        ap = Autopass.from_html(driver)
+        if not past_game:
+            ap = Autopass.from_html(driver)
+        else:
+            ap = Autopass.from_past_html(driver)
         block = AnswerBlock.from_html(driver)
         sectors = SectorsToCover.from_html(driver)
         time.sleep(2)

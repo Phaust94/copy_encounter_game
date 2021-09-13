@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import typing
+import re
 
 from selenium import webdriver
 
@@ -96,6 +97,32 @@ class Autopass(PrettyPrinter):
         ]
         # noinspection PyTypeChecker
         return cls(enabled, tuple(vals[:3]), tuple(vals[3:]))
+
+    @classmethod
+    def from_past_html(
+        cls,
+        driver: webdriver.Chrome,
+    ) -> Autopass:
+
+        elem = driver.find_element_by_id("lnkAdjustAutopass").text
+        pts = elem.split(",")
+        ap = []
+        for pt in pts:
+            t = []
+            for unit in ("hours", "minutes", "seconds"):
+                un_val = re.findall(
+                    fr"([0-9]+) {unit}", pt
+                )
+                un_val = int(un_val[0]) if un_val else 0
+                t.append(un_val)
+            days = re.findall(fr"([0-9]+) days", pt)
+            if days:
+                t[0] += int(days[0]) * 24
+
+            ap.append(tuple(t))
+
+        inst = cls(bool(sum(ap[0])), *ap)
+        return inst
 
     def to_html(self, driver: webdriver.Chrome) -> None:
         elem = driver.find_element_by_id(self.STATUS_ID)

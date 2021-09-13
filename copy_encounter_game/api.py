@@ -20,6 +20,7 @@ def save_game(
         keep_existing: bool = True,
         download_files: bool = False,
         files_location: typing.Optional[str] = None,
+        past_game: bool = False,
 ) -> None:
     dir_ = os.path.dirname(path_to_store_game)
     fname, ext = os.path.splitext(path_to_store_game)
@@ -37,6 +38,7 @@ def save_game(
         files_location=files_location,
         path_template=temp_fp,
         read_cache=not keep_existing,
+        past_game=past_game,
     )
 
     if keep_existing:

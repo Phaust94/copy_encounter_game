@@ -75,6 +75,7 @@ class Game(PrettyPrinter):
             files_location: str = None,
             path_template: str = None,
             read_cache: bool = False,
+            past_game: bool = False,
     ) -> Game:
         gci = GameCustomInfo(domain, game_id, creds, chrome_driver_path)
         driver = gci.driver
@@ -96,7 +97,8 @@ class Game(PrettyPrinter):
                 level = Level.from_file(tmp_file)
             else:
                 level = Level.from_html(
-                    driver, domain, game_id, level_id
+                    driver, domain, game_id, level_id,
+                    past_game=past_game,
                 )
                 level.to_file(tmp_file)
 
