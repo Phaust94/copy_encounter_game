@@ -55,6 +55,17 @@ class Level(PrettyPrinter):
     def current_level_url(cls, domain: str, game_id: int, level_id: int) -> str:
         return cls.LEVEL_URL.format(domain=domain, gid=game_id, lid=level_id)
 
+    @staticmethod
+    def needed(
+        thing: type,
+        skip_entities: typing.Set[typing.Union[
+            type(Answer), type(Autopass), type(AnswerBlock), type(Task),
+            type(Bonus), type(Hint), type(LevelName), type(SectorsToCover),
+        ]]
+    ) -> bool:
+        res = not any(issubclass(thing, x) for x in skip_entities)
+        return res
+
     @classmethod
     def find_hint_urls(cls, driver: webdriver.Chrome, type_: int = 0) -> typing.List[str]:
         time.sleep(0.3)
@@ -73,16 +84,17 @@ class Level(PrettyPrinter):
         return hint_hrefs
 
     @classmethod
-    def load_hints(cls, driver: webdriver.Chrome, type_: int = 0) -> typing.List[Hint]:
+    def load_hints(
+        cls,
+        driver: webdriver.Chrome,
+        type_: int = 0, type_class: typing.Union[
+            type(Hint), type(PenalizedHint), type(Bonus)
+        ] = Hint,
+    ) -> typing.List[Hint]:
         hint_hrefs = cls.find_hint_urls(driver, type_)
         hints = []
-        gtr = {
-            0: Hint,
-            1: PenalizedHint,
-            2: Bonus,
-        }[type_]
         for href in hint_hrefs:
-            hint = gtr.from_html(driver, href)
+            hint = type_class.from_html(driver, href)
             hints.append(hint)
 
         return hints
@@ -140,24 +152,52 @@ class Level(PrettyPrinter):
             game_id: int,
             level_id: int,
             past_game: bool = False,
+            skip_entities: typing.Set[typing.Union[
+                type(Answer), type(Autopass), type(AnswerBlock), type(Task),
+                type(Bonus), type(Hint), type(LevelName), type(SectorsToCover),
+            ]] = None,
     ) -> Level:
+        skip_entities = skip_entities or {}
         driver.get(cls.current_level_url(domain, game_id, level_id))
-        name = LevelName.from_html(driver, game_id, level_id)
-        if not past_game:
-            ap = Autopass.from_html(driver)
-        else:
-            ap = Autopass.from_past_html(driver)
-        block = AnswerBlock.from_html(driver)
-        sectors = SectorsToCover.from_html(driver)
+
+        name = None
+        if cls.needed(LevelName, skip_entities):
+            name = LevelName.from_html(driver, game_id, level_id)
+
+        ap = None
+        if cls.needed(Autopass, skip_entities):
+            if not past_game:
+                ap = Autopass.from_html(driver)
+            else:
+                ap = Autopass.from_past_html(driver)
+
+        block = None
+        if cls.needed(AnswerBlock, skip_entities):
+            block = AnswerBlock.from_html(driver)
+
+        sectors = None
+        if cls.needed(SectorsToCover, skip_entities):
+            sectors = SectorsToCover.from_html(driver)
+
         time.sleep(2)
 
-        tasks = cls.load_tasks(driver)
+        tasks = []
+        if cls.needed(Task, skip_entities):
+            tasks = cls.load_tasks(driver)
         time.sleep(2)
         hint_types = []
         for type_ in range(3):
-            hint_type = cls.load_hints(driver, type_)
+            type_class = {
+                0: Hint,
+                1: PenalizedHint,
+                2: Bonus,
+            }[type_]
+
+            hint_type = None
+            if cls.needed(type_class, skip_entities):
+                hint_type = cls.load_hints(driver, type_, type_class)
+                time.sleep(2)
             hint_types.append(hint_type)
-            time.sleep(2)
         answers = cls.load_answers(driver, domain)
 
         # noinspection PyTypeChecker
@@ -200,6 +240,10 @@ class Level(PrettyPrinter):
             1: self.penalized_hints,
             2: self.bonuses,
         }[type_]
+
+        if hints is None:
+            return None
+
         for hint, hint_url in itertools.zip_longest(hints, hint_urls):
             if hint_url is None:
                 hint_url = self.hint_edit_url(type_)
@@ -266,18 +310,24 @@ class Level(PrettyPrinter):
     def to_html(self, gci: GameCustomInfo) -> None:
         driver = gci.driver
         gci.navigate_to_level(self.level_id)
-        self.name.to_html(driver, self.game_id, self.level_id)
-        self.autopass.to_html(driver)
-        self.answer_block.to_html(driver)
+        if self.name is not None:
+            self.name.to_html(driver, self.game_id, self.level_id)
+        if self.autopass is not None:
+            self.autopass.to_html(driver)
+        if self.answer_block is not None:
+            self.answer_block.to_html(driver)
         time.sleep(2)
-        for task in self.tasks:
-            task.to_html(driver)
-            time.sleep(2)
+        if self.tasks is not None:
+            for task in self.tasks:
+                task.to_html(driver)
+                time.sleep(2)
         for type_ in range(3):
             self.store_hints(gci, type_)
             time.sleep(2)
-        self.store_answers(gci)
-        if self.has_sectors and len(self.answers) != 1:
+
+        if self.answers is not None:
+            self.store_answers(gci)
+        if self.has_sectors and len(self.answers) != 1 and self.sectors_to_cover is not None:
             time.sleep(2)
             self.sectors_to_cover.to_html(driver)
         return None

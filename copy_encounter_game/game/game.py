@@ -15,6 +15,9 @@ from copy_encounter_game.game.meta_info import LevelName
 from copy_encounter_game.game.game_files import GameFiles
 from copy_encounter_game.game.game_custom_info import GameCustomInfo
 
+if typing.TYPE_CHECKING:
+    from copy_encounter_game.game import Answer, Autopass, AnswerBlock, Task, Bonus, Hint, SectorsToCover
+
 __all__ = [
     "Game",
 ]
@@ -76,7 +79,12 @@ class Game(PrettyPrinter):
             path_template: str = None,
             read_cache: bool = False,
             past_game: bool = False,
+            skip_entities: typing.Set[typing.Union[
+                type(Answer), type(Autopass), type(AnswerBlock), type(Task),
+                type(Bonus), type(Hint), type(LevelName), type(SectorsToCover),
+            ]] = None,
     ) -> Game:
+        skip_entities = skip_entities or {}
         gci = GameCustomInfo(domain, game_id, creds, chrome_driver_path)
         driver = gci.driver
         n_levels = cls.get_n_levels(driver, domain, game_id)
@@ -99,6 +107,7 @@ class Game(PrettyPrinter):
                 level = Level.from_html(
                     driver, domain, game_id, level_id,
                     past_game=past_game,
+                    skip_entities=skip_entities,
                 )
                 level.to_file(tmp_file)
 

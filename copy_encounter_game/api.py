@@ -2,7 +2,7 @@
 import typing
 import os
 
-from copy_encounter_game.game import Game
+from copy_encounter_game.game import Game, Answer, Autopass, AnswerBlock, Task, Bonus, Hint, LevelName, SectorsToCover
 
 __all__ = [
     "save_game",
@@ -21,7 +21,12 @@ def save_game(
         download_files: bool = False,
         files_location: typing.Optional[str] = None,
         past_game: bool = False,
+        skip_entities: typing.Set[typing.Union[
+            type(Answer), type(Autopass), type(AnswerBlock), type(Task),
+            type(Bonus), type(Hint), type(LevelName), type(SectorsToCover),
+        ]] = None,
 ) -> None:
+    skip_entities = skip_entities or set()
     dir_ = os.path.dirname(path_to_store_game)
     fname, ext = os.path.splitext(path_to_store_game)
     temp_fp = os.path.join(
@@ -47,6 +52,7 @@ def save_game(
         path_template=temp_fp,
         read_cache=not keep_existing or not existing_game,
         past_game=past_game,
+        skip_entities=skip_entities,
     )
 
     if existing_game:
