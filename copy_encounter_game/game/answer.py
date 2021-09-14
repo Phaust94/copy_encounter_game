@@ -31,6 +31,7 @@ class AnswerOption(PrettyPrinter):
 class Answer(PrettyPrinter):
     options: typing.List[AnswerOption]
     name: typing.Optional[str] = None
+    order_id: int = None
 
     SHOW_ANSWERS_ID = "AnswersTable_ctl00_lnkShowAnswers"
 
@@ -59,7 +60,8 @@ class Answer(PrettyPrinter):
     def from_html(
             cls,
             driver: webdriver.Chrome,
-            url: typing.Optional[str], name: typing.Optional[str], domain: str
+            url: typing.Optional[str], name: typing.Optional[str],
+            domain: str, order_id: int = None,
     ) -> Answer:
         url = f"http://{domain}{url}"
         driver.get(url)
@@ -88,7 +90,7 @@ class Answer(PrettyPrinter):
             for ans, who in zip(*res)
         ]
 
-        inst = cls(answers_inst, name)
+        inst = cls(answers_inst, name, order_id)
         return inst
 
     def to_html(

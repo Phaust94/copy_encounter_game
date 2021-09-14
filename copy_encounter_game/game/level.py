@@ -43,6 +43,14 @@ class Level(PrettyPrinter):
 
     LEVEL_URL = "http://{domain}/Administration/Games/LevelEditor.aspx?gid={gid}&level={lid}"
 
+    @property
+    def ordered_answers(self) -> typing.List[typing.Tuple[int, Answer]]:
+        if all(ans.order_id is not None for ans in self.answers):
+            res = [(ans.order_id, ans) for ans in self.answers]
+        else:
+            res = list(enumerate(self.answers))
+        return res
+
     @classmethod
     def current_level_url(cls, domain: str, game_id: int, level_id: int) -> str:
         return cls.LEVEL_URL.format(domain=domain, gid=game_id, lid=level_id)
@@ -118,8 +126,8 @@ class Level(PrettyPrinter):
             if not sector_names:
                 sector_names = [None]
             answers = [
-                Answer.from_html(driver, url, name, domain)
-                for url, name in zip(edit_urls, sector_names)
+                Answer.from_html(driver, url, name, domain, i)
+                for i, (url, name) in enumerate(zip(edit_urls, sector_names))
             ]
 
         return answers
@@ -228,7 +236,7 @@ class Level(PrettyPrinter):
             ),
         }[has_no_sectors]
         # TODO: fix this when many sectors with more than 10 codes. Currently fails after 1st sector completes
-        for i, answer in enumerate(self.answers):
+        for i, answer in self.ordered_answers:
             funcs = itertools.chain(
                 [(initial_and_other_func[0], True)],
                 itertools.repeat((initial_and_other_func[1], False)),
@@ -246,6 +254,7 @@ class Level(PrettyPrinter):
                 except selenium.common.exceptions.JavascriptException:
                     gci.login()
                     gci.navigate_to_level(self.level_id)
+                    driver.find_element_by_id(Answer.SHOW_ANSWERS_ID).click()
                     driver.execute_script(func_formatted)
                     part.to_html(
                         driver,
