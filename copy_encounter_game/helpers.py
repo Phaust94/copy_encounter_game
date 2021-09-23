@@ -36,7 +36,7 @@ class ScriptedPart:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.explicitely_close_window:
             self.driver.close()
-            self.driver.switch_to.window(self.driver.window_handles[0])
+        self.driver.switch_to.window(self.driver.window_handles[0])
         return None
 
     def wait(self) -> None:
